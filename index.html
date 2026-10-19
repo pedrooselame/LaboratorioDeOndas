@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Laboratório de Ondas</title>
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--tx:#1b2430;--mut:#5b6877;--ac:#2e5c8a;--ac2:#d85a30;--ok:#237d4b;--no:#b3402a;--bd:#d9e0e8;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#10161d;--card:#18212b;--tx:#e8edf2;--mut:#9aa8b6;--ac:#6fa8e0;--ac2:#f0875f;--ok:#4cc585;--no:#f08a76;--bd:#2b3846;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#10161d;--card:#18212b;--tx:#e8edf2;--mut:#9aa8b6;--ac:#6fa8e0;--ac2:#f0875f;--ok:#4cc585;--no:#f08a76;--bd:#2b3846;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+.w{max-width:760px;margin:0 auto;padding:16px}
+header{display:flex;justify-content:space-between;align-items:center;gap:8px}
+h1{font-size:22px;margin:0}h2{font-size:18px;margin:0 0 6px}
+#stars{font-size:20px;color:var(--ac2);white-space:nowrap}
+nav{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+nav button{flex:1;min-width:44px;padding:8px 4px}
+button{font:inherit;cursor:pointer;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:8px;padding:8px 14px}
+button.on{background:var(--ac);color:#fff;border-color:var(--ac)}
+button.dn::after{content:" ✓";color:var(--ok)}button.on.dn::after{color:#fff}
+button.p{background:var(--ac);color:#fff;border-color:var(--ac)}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px}
+canvas{width:100%;height:auto;display:block;border:1px solid var(--bd);border-radius:8px;margin:10px 0}
+label{display:block;margin:8px 0;font-size:14px;color:var(--mut)}
+input[type=range]{width:100%;accent-color:var(--ac)}
+input[type=number]{font:inherit;padding:8px;width:160px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.opts{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
+#fb{min-height:24px;margin:10px 0 0;font-weight:600}#fb.ok{color:var(--ok)}#fb.no{color:var(--no)}
+footer{font-size:12px;color:var(--mut);margin-top:12px;text-align:center}
+</style></head><body><div class="w">
+<header><h1>🌊 Laboratório de Ondas</h1><div id="stars" aria-label="progresso"></div></header>
+<nav id="nav"></nav>
+<section class="card"><h2 id="ttl"></h2><p id="brief"></p>
+<canvas id="cv" width="1280" height="400" aria-label="Animação da missão"></canvas>
+<div id="ctl"></div>
+<div class="row"><button id="chk" class="p">Verificar ✔</button><button id="hint">💡 Dica</button><button id="again" hidden>Nova rodada ↻</button></div>
+<p id="fb" role="status"></p></section>
+<footer>Baseado no material “Ondulatória — Fundamentos das Ondas Sonoras”.</footer></div>
+<script>
+const $=s=>document.querySelector(s),cv=$('#cv'),g=cv.getContext('2d'),W=640,H=200,PI=Math.PI;
+const rnd=a=>a[Math.floor(Math.random()*a.length)],pt=n=>String(n).replace('.',','),val=id=>+document.getElementById(id).value;
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const sl=(id,l,mn,mx,st,v,u)=>`<label>${l}: <b id="${id}v">${v}</b> ${u}<input type="range" id="${id}" min="${mn}" max="${mx}" step="${st}" value="${v}"></label>`;
+const ctl=h=>$('#ctl').innerHTML=h,brief=h=>$('#brief').innerHTML=h;
+function fb(m,ok){const f=$('#fb');f.textContent=m;f.className=ok?'ok':'no'}
+function pl(fn,c,w,d){g.beginPath();for(let x=0;x<=W;x+=2){const y=fn(x);x?g.lineTo(x,y):g.moveTo(x,y)}g.strokeStyle=c;g.lineWidth=w;g.setLineDash(d||[]);g.stroke();g.setLineDash([])}
+function tx(s,x,y,c,al){g.fillStyle=c;g.textAlign=al||'left';g.fillText(s,x,y)}
+let col={},cur=0,done=new Set(),T0=performance.now();
+const M=[
+{n:'A equação fundamental',hint:'v = λ · f. Se v é fixo, aumentar f faz λ diminuir.',
+ set(){this.L=rnd([0.34,0.5,0.68,0.85,1,1.7]);brief(`No ar o som viaja a <b>v = 340 m/s</b>. Mexa na frequência e observe o que acontece com o comprimento de onda. <b>Desafio:</b> faça λ = <b>${pt(this.L)} m</b>.`);ctl(sl('f','Frequência f',100,1000,10,500,'Hz'))},
+ draw(t){const f=val('f'),lam=340/f,ph=t*2;pl(x=>H/2-55*Math.cos(2*PI*(x/W*4)/lam-ph),col.ac,3);
+  const xc=((ph/(2*PI))%1)*lam,a=xc/4*W,b=(xc+lam)/4*W;g.strokeStyle=col.ac2;g.lineWidth=2;g.beginPath();g.moveTo(a,22);g.lineTo(b,22);g.moveTo(a,16);g.lineTo(a,28);g.moveTo(b,16);g.lineTo(b,28);g.stroke();
+  tx(`λ = ${pt(lam.toFixed(2))} m`,Math.min(Math.max((a+b)/2,50),W-60),14,col.ac2,'center');tx(`f = ${f} Hz   (janela: 4 m)`,8,H-8,col.mut)},
+ check(){const l=340/val('f'),ok=Math.abs(l-this.L)/this.L<0.02;return[ok,ok?`Isso! λ = v/f = 340/${val('f')} ≈ ${pt(this.L)} m.`:`Agora λ = ${pt(l.toFixed(2))} m. Você precisa de ${pt(this.L)} m: aumentar f estica ou encolhe λ?`]}},
+{n:'Agudo, grave, forte, fraco',hint:'Frequência → altura (grave/agudo). Amplitude → intensidade (fraco/forte).',
+ set(){this.q=rnd([['agudo','fraco'],['grave','forte'],['agudo','forte'],['grave','fraco']]);brief(`A linha tracejada é o som de referência (440 Hz, amplitude 1,0). Crie um som <b>${this.q[0]} e ${this.q[1]}</b> que a referência.`);ctl(sl('f','Frequência',220,880,10,440,'Hz')+sl('a','Amplitude',0.2,2,0.1,1,''))},
+ draw(t){const f=val('f'),a=val('a'),o=t*0.002;pl(x=>H/2-45*Math.cos(2*PI*440*(x/W*0.02+o)),col.mut,2,[5,4]);pl(x=>H/2-45*a*Math.cos(2*PI*f*(x/W*0.02+o)),col.ac,3);tx('tempo →  (câmera lenta, 20 ms)',8,H-8,col.mut)},
+ check(){const f=val('f'),a=val('a'),[p,q]=this.q,o1=p=='agudo'?f>=460:f<=420,o2=q=='forte'?a>=1.2:a<=0.8,ok=o1&&o2;
+  return[ok,ok?`Perfeito: ${p} (frequência ${p=='agudo'?'maior':'menor'}) e ${q} (amplitude ${q=='forte'?'maior':'menor'}).`:(!o1?`A altura ainda não está ${p}: mexa na frequência.`:`A intensidade ainda não está ${q}: mexa na amplitude.`)]}},
+{n:'Timbre e harmônicos',hint:'Um som real é a soma da fundamental com harmônicos. Compare o formato das curvas.',
+ set(){this.t=rnd([['Flauta',[1,0,0]],['Clarinete',[1,0,.6]],['Violão',[1,.5,.2]],['Piano',[.6,.8,.4]]]);brief(`Todos os instrumentos tocam a mesma nota. O <b>formato da onda</b> (tracejado) é a “assinatura” de um instrumento misterioso. Combine os harmônicos para reproduzi-lo.`);ctl(sl('h1','1º harmônico (fundamental)',0,1,0.1,1,'')+sl('h2','2º harmônico',0,1,0.1,0,'')+sl('h3','3º harmônico',0,1,0.1,0,''))},
+ draw(t){const w=(c,x)=>{const u=x/W*2-t*0.3;return H/2-40*(c[0]*Math.sin(2*PI*u)+c[1]*Math.sin(4*PI*u)+c[2]*Math.sin(6*PI*u))},c=[val('h1'),val('h2'),val('h3')];pl(x=>w(this.t[1],x),col.mut,2,[5,4]);pl(x=>w(c,x),col.ac,3)},
+ check(){const c=['h1','h2','h3'].map(val),d=c.reduce((s,v,i)=>s+Math.abs(v-this.t[1][i]),0),ok=d<=0.3;return[ok,ok?`Era o timbre de ${this.t[0]}! Mesma nota, mesma frequência fundamental — só muda a mistura de harmônicos.`:'As curvas ainda não coincidem. Ajuste os harmônicos até a linha azul cobrir a tracejada.']}},
+{n:'Eco e distância',hint:'O som percorre ida e volta: d = v·t / 2, com v = 340 m/s.',
+ set(){this.d=rnd([170,255,340,510]);this.ts=0;this.sh=false;brief('Grite para a montanha e cronometre o eco. A distância é segredo! Lembre: o som faz <b>ida e volta</b>. Quanto vale a distância?');ctl('<div class="row"><button id="shout" class="p">📣 Gritar!</button><input type="number" id="ans" placeholder="distância (m)" aria-label="distância em metros"></div>');$('#shout').onclick=()=>{this.ts=performance.now();this.sh=true}},
+ draw(t,now){g.strokeStyle=col.bd;g.lineWidth=1;g.beginPath();g.moveTo(0,150);g.lineTo(W,150);g.stroke();g.font='34px serif';tx('🗣️',10,135,col.tx);g.fillStyle=col.mut;g.beginPath();g.moveTo(520,150);g.lineTo(580,70);g.lineTo(640,150);g.fill();g.font='13px system-ui,sans-serif';
+  if(!this.sh){tx('Aperte “Gritar!”',W/2,40,col.mut,'center');return}
+  const el=(now-this.ts)/1000,Tt=2*this.d/340,fr=el/Tt;
+  if(fr<=1){const go=fr<.5,px=go?50+fr*2*470:520-(fr-.5)*2*470;g.strokeStyle=go?col.ac:col.ac2;g.lineWidth=3;for(let k=0;k<3;k++){g.globalAlpha=1-k*.3;g.beginPath();go?g.arc(px,115,12+k*10,-1,1):g.arc(px,115,12+k*10,PI-1,PI+1);g.stroke()}g.globalAlpha=1;tx(`⏱ ${el.toFixed(1)} s`,W/2,40,col.tx,'center')}
+  else tx(`🔊 Eco ouvido após ${pt(Tt.toFixed(1))} s`,W/2,40,col.ac2,'center')},
+ check(){if(!this.sh)return[false,'Primeiro grite e cronometre o eco!'];const a=+$('#ans').value;if(!a)return[false,'Digite sua estimativa de distância em metros.'];const ok=Math.abs(a-this.d)<=this.d*.05;return[ok,ok?`Isso! d = 340 · ${pt((2*this.d/340).toFixed(1))} / 2 = ${this.d} m.`:'Quase! Lembre que o tempo medido inclui a ida e a volta do som.']}},
+{n:'Interferência: cancele o ruído',hint:'Para cancelar, a segunda onda precisa ter a mesma amplitude e estar em oposição de fase (180°).',
+ set(){brief('A onda azul é um ruído (amplitude 1). Ajuste a onda laranja — o “anti-ruído” — para que a soma (verde) quase desapareça, como nos fones com cancelamento de ruído.');ctl(sl('a2','Amplitude do anti-ruído',0.2,1.5,0.1,0.5,'')+sl('ph','Defasagem',0,360,15,90,'°'))},
+ draw(t){const a=val('a2'),p=val('ph')*PI/180,u=x=>x/W*2*PI*2-t*3,A=42;pl(x=>H/2-A*Math.cos(u(x)),col.ac,2);pl(x=>H/2-A*a*Math.cos(u(x)+p),col.ac2,2);pl(x=>H/2-A*(Math.cos(u(x))+a*Math.cos(u(x)+p)),col.ok,4);const R=Math.sqrt(1+a*a+2*a*Math.cos(p));tx(`amplitude resultante = ${pt(R.toFixed(2))}`,8,H-8,col.ok)},
+ check(){const a=val('a2'),p=val('ph')*PI/180,R=Math.sqrt(1+a*a+2*a*Math.cos(p)),ok=R<=0.15;return[ok,ok?'Silêncio! Interferência destrutiva: ondas de mesma amplitude em oposição de fase se cancelam.':`Resultante ainda em ${pt(R.toFixed(2))}. Tente igualar a amplitude e deixar as ondas em “espelho” uma da outra.`]}},
+{n:'Detetive de fenômenos',hint:'Reflexão, refração, difração, interferência, ressonância, absorção — pense no que a onda faz.',
+ S:[['⛰️','Você grita e, depois de alguns segundos, ouve a própria voz voltando da montanha.','Reflexão'],['🚪','Você ouve uma conversa do outro lado de uma porta entreaberta, sem ver ninguém.','Difração'],['🎧','Um fone emite uma onda oposta ao som do ambiente e o ruído some.','Interferência'],['🍷','Uma taça de cristal se rompe ao ser exposta a um som de frequência muito específica.','Ressonância'],['🛋️','Cortinas, tapetes e espuma acústica deixam o estúdio com menos eco.','Absorção'],['🌊','O som passa do ar para a água e muda de velocidade (e geralmente de direção).','Refração']],
+ set(){this.q=[...this.S].sort(()=>Math.random()-.5);this.i=0;this.s=0;this.r()},
+ r(){$('#chk').hidden=true;$('#again').hidden=true;brief('Qual fenômeno ondulatório explica cada situação? Acerte pelo menos 5 de 6.');const q=this.q[this.i];ctl(`<p><b>(${this.i+1}/6)</b> ${q[1]}</p><div class="opts">${['Reflexão','Refração','Difração','Interferência','Ressonância','Absorção'].map(o=>`<button data-o="${o}">${o}</button>`).join('')}</div>`)},
+ ans(o){const q=this.q[this.i],ok=o==q[2];if(ok)this.s++;this.i++;if(this.i<6){this.r();fb(ok?'✔ Certo!':`✘ Era ${q[2]}.`,ok)}else{ctl('');const w=this.s>=5;fb(`Você acertou ${this.s} de 6. `+(w?'Missão cumprida!':'Quase! Tente uma nova rodada.'),w);if(w)win();$('#again').hidden=false}},
+ draw(){const q=this.q[Math.min(this.i,5)];g.font='90px serif';g.textAlign='center';g.fillText(this.i<6?q[0]:'🏁',W/2,H/2+30);g.font='13px system-ui,sans-serif'},
+ check(){return[false,'']}}
+];
+function nav(){$('#nav').innerHTML=M.map((m,i)=>`<button data-i="${i}" class="${i==cur?'on ':''}${done.has(i)?'dn':''}" aria-label="Missão ${i+1}: ${m.n}">${i+1}</button>`).join('');$('#stars').textContent='★'.repeat(done.size)+'☆'.repeat(M.length-done.size)}
+function win(){done.add(cur);nav();$('#again').hidden=false;if(done.size==M.length)$('#fb').textContent+=' 🏆 Você concluiu todas as missões!'}
+function load(i){cur=i;$('#ttl').textContent=`Missão ${i+1} — ${M[i].n}`;$('#fb').textContent='';$('#fb').className='';$('#again').hidden=true;$('#chk').hidden=false;M[i].set();nav()}
+$('#nav').onclick=e=>{if(e.target.dataset.i!=null)load(+e.target.dataset.i)};
+$('#ctl').addEventListener('input',e=>{const b=document.getElementById(e.target.id+'v');if(b)b.textContent=e.target.value});
+$('#ctl').addEventListener('click',e=>{if(e.target.dataset.o&&cur==5)M[5].ans(e.target.dataset.o)});
+$('#chk').onclick=()=>{const[ok,m]=M[cur].check();fb(m,ok);if(ok)win()};
+$('#hint').onclick=()=>fb('💡 '+M[cur].hint,true);
+$('#again').onclick=()=>load(cur);
+function loop(now){const t=(now-T0)/1000;col={bd:css('--bd'),ac:css('--ac'),ac2:css('--ac2'),ok:css('--ok'),tx:css('--tx'),mut:css('--mut')};g.setTransform(2,0,0,2,0,0);g.clearRect(0,0,W,H);g.font='13px system-ui,sans-serif';g.textAlign='left';M[cur].draw(t,now);requestAnimationFrame(loop)}
+load(0);requestAnimationFrame(loop);
+</script></body></html>
